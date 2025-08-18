@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Wordle next guess</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        /* ---- Minimal modern reset & layout fixes ---- */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        :where(h1, h2, h3, h4, h5, p, ul, ol) {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            margin: 0;
+            line-height: 1.5;
+            font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        }
+
+        img,
+        svg,
+        video,
+        canvas {
+            display: block;
+            max-width: 100%;
+        }
+
+        .wrap>* {
+            min-width: 0;
+        }
+
+        /* ---- Theme: cute light pink / purple ---- */
+        :root {
+            --bg: #fff8fb;
+            /* soft paper */
+            --card: #ffffff;
+            /* card bg */
+            --muted: #7b6f88;
+            /* muted text (lavender-gray) */
+            --accent1: #f472b6;
+            /* warm pink */
+            --accent2: #c084fc;
+            /* soft purple */
+            --stroke: rgba(30, 16, 38, 0.06);
+            /* light stroke */
+            --text: #2b2540;
+            /* primary text (dark purple) */
+            --chip: #fff0f7;
+            /* chip bg */
+        }
+
+        body {
+            background:
+                radial-gradient(600px 400px at 10% 12%, rgba(196, 132, 252, 0.10), transparent 10%),
+                radial-gradient(600px 350px at 85% 80%, rgba(244, 114, 182, 0.06), transparent 8%),
+                linear-gradient(180deg, var(--bg) 0%, #fff 70%);
+            color: var(--text);
+            padding: 28px;
+            box-sizing: border-box;
+        }
+
+        /* ---- Layout ---- */
+        .wrap {
+            max-width: 1120px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 22px;
+        }
+
+        header {
+            grid-column: 1/-1;
+            display: flex;
+            align-items: center;
+            gap: 16px
+        }
+
+        .logo {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent1), var(--accent2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 800;
+            font-size: 20px;
+            box-shadow: 0 8px 24px rgba(192, 88, 160, 0.12)
+        }
+
+        h1 {
+            font-size: 20px
+        }
+
+        p.lead {
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        /* ---- Cards (the boxes) ---- */
+        .card {
+            background: var(--card);
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: 0 8px 30px rgba(40, 18, 60, 0.04);
+            border: 1px solid var(--stroke);
+            overflow: hidden;
+        }
+
+        .card+.card {
+            margin-top: 0;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 8px
+        }
+
+        .files {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap
+        }
+
+        input[type=file] {
+            color: inherit
+        }
+
+        .small {
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        .history {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px
+        }
+
+        .hist-row {
+            display: flex;
+            gap: 8px;
+            align-items: center
+        }
+
+        .chip {
+            background: var(--chip);
+            padding: 6px 10px;
+            border-radius: 10px;
+            font-weight: 600;
+            border: 1px solid var(--stroke);
+            color: var(--text)
+        }
+
+        .bad {
+            color: #ef476f;
+            background: rgba(239, 71, 111, 0.06);
+            padding: 4px 8px;
+            border-radius: 6px
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-top: 10px;
+            flex-wrap: wrap
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid var(--stroke);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 10px;
+            cursor: pointer
+        }
+
+        button.primary {
+            background: linear-gradient(90deg, var(--accent1), var(--accent2));
+            color: #fff;
+            border: 0;
+            box-shadow: 0 6px 18px rgba(192, 88, 160, 0.10)
+        }
+
+        .main-col {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            min-width: 0;
+        }
+
+        .top-row {
+            display: flex;
+            gap: 12px;
+            align-items: stretch
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px dashed rgba(40, 18, 60, 0.04);
+            font-size: 14px
+        }
+
+        th {
+            color: var(--muted);
+            font-weight: 600
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        .small-right {
+            font-size: 13px;
+            color: var(--muted)
+        }
+
+        .candidate-list {
+            max-height: 180px;
+            overflow: auto;
+            padding: 12px;
+            background: linear-gradient(180deg, rgba(240, 243, 250, 0.6), rgba(255, 250, 253, 0.6));
+            border-radius: 10px;
+            border: 1px dashed var(--stroke)
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 3px solid rgba(43, 37, 64, 0.12);
+            border-top-color: var(--accent1);
+            animation: spin 1s linear infinite;
+            display: inline-block
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        footer {
+            grid-column: 1/-1;
+            color: var(--muted);
+            font-size: 13px;
+            text-align: center;
+            margin-top: 10px
+        }
+
+        .pill {
+            background: linear-gradient(90deg, rgba(244, 114, 182, 0.14), rgba(192, 132, 252, 0.12));
+            padding: 6px 8px;
+            border-radius: 999px;
+            font-weight: 600;
+            border: 1px solid var(--stroke);
+            color: var(--text)
+        }
+
+        .copy-btn {
+            border: 1px solid var(--stroke);
+            background: transparent;
+            padding: 6px 8px;
+            border-radius: 8px;
+            cursor: pointer
+        }
+
+        .result-word {
+            font-weight: 800;
+            letter-spacing: 0.06em
+        }
+
+        .pattern-input {
+            width: 132px
+        }
+
+        input[type=text],
+        textarea {
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(43, 37, 64, 0.06);
+            background: linear-gradient(180deg, #fff, #fff);
+            color: var(--text);
+            width: 100%;
+            box-shadow: inset 0 1px 0 rgba(16, 12, 24, 0.02)
+        }
+
+        .flex {
+            display: flex;
+            gap: 8px;
+            align-items: center
+        }
+
+        .hint {
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        hr {
+            border: none;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(192, 132, 252, 0.06), rgba(244, 114, 182, 0.04));
+            margin: 14px 0;
+        }
+
+        /* responsive tweaks */
+        @media (max-width:980px) {
+            .wrap {
+                grid-template-columns: 1fr;
+                padding: 0
+            }
+
+            header {
+                flex-direction: column;
+                align-items: flex-start
+            }
+
+            .logo {
+                width: 48px;
+                height: 48px
+            }
+
+            .top-row {
+                flex-direction: column
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <header>
+            <div class="logo">W</div>
+            <div>
+                <h1>Wordle next guess</h1>
+                <p class="lead">Upload or auto-load <span class="pill">answers.txt</span> & <span
+                        class="pill">guesses.txt</span>. Enter guesses + feedback (g/y/b).</p>
+            </div>
+        </header>
+
+        <!-- Left column: controls -->
+        <aside class="card">
+            <label>Load word lists (optional)
+                <div class="files">
+                    <input id="answersFile" type="file" accept=".txt">
+                    <input id="guessesFile" type="file" accept=".txt">
+                    <button id="tryAuto">Auto-load from repo</button>
+                </div>
+            </label>
+
+            <hr>
+
+
+
+            <label>Enter guess + feedback</label>
+            <div class="flex">
+                <input id="guessInput" type="text" maxlength="5" placeholder="guess (ex : ratel)"
+                    style="text-transform:lowercase">
+                <input id="patternInput" class="pattern-input" type="text" maxlength="5" placeholder="pattern (g/y/b)">
+                <button id="addHistory" class="primary">Add</button>
+            </div>
+            <div class="hint">
+                <li>Pattern: <b>g</b>=green, <b>y</b>=yellow, <b>b</b>=black.</li>
+                <li>Example: <code>ratel → bbbyb</code></li>
+
+            </div>
+
+            <div class="history" id="historyList" style="margin-top:12px"></div>
+
+            <div class="controls" style="margin-top:12px">
+                <label style="display:flex;align-items:center;gap:8px"><input id="onlyAnswers" type="checkbox"> Use only
+                    answers as guess candidates (faster)</label>
+                <label style="display:flex;align-items:center;gap:8px"><input id="showAllCandidates" type="checkbox">
+                    Show all candidate words</label>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:12px">
+                <button id="compute" class="primary">Compute suggestions</button>
+                <button id="reset" title="Clear history">Reset</button>
+            </div>
+
+            <div style="margin-top:12px" id="loadStatus" class="muted">No word lists loaded yet.</div>
+        </aside>
+
+        <!-- Right column: results -->
+        <main class="main-col">
+            <div class="card">
+                <div class="top-row">
+                    <div style="flex:1; min-width:0">
+                        <div class="small-right">Candidates (<span id="candidateCount">0</span>)</div>
+                        <div class="candidate-list" id="candidatesBox">—</div>
+                    </div>
+                    <div style="width:320px; min-width:260px">
+                        <div class="small-right">Top suggestions</div>
+                        <div style="margin-top:8px" id="topBox">—</div>
+                    </div>
+                </div>
+
+                <div style="margin-top:14px">
+                    <div class="small-right">Ranked guesses (expected remaining size)</div>
+                    <div id="resultsArea"></div>
+                </div>
+            </div>
+
+            <div class="card" style="display:flex;flex-direction:column;gap:10px">
+                <div class="muted">Notes</div>
+                <ul class="muted" style="padding-left:18px">
+                    <li>Algorithm: for each possible guess it simulates feedbacks vs candidate solutions, groups by
+                        pattern, and computes <code>sum(|bucket|^2)/N</code>, the expected remaining candidate set size.
+                        Lower is better.</li>
+                    <li>Prefer "Use only answers" if the browser is slow. Full guess list is stronger but heavier.</li>
+                </ul>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        /* ---------------------- Data & parsing ---------------------- */
+        let answers = [];
+        let guesses = [];
+
+        const el = id => document.getElementById(id);
+        const loadStatus = el('loadStatus');
+
+        function parseWordList(text) {
+            return text.split(/[\r\n]+/)
+                .map(s => s.trim().toLowerCase())
+                .filter(w => /^[a-z]{5}$/.test(w));
+        }
+
+        function relUrl(file) {
+            // Resolve relative to current page URL so project pages work (no leading slash)
+            return new URL(file, window.location.href).toString();
+        }
+
+        async function tryAutoLoad() {
+            loadStatus.textContent = 'Trying to fetch answers.txt & guesses.txt (relative to this page)…';
+            try {
+                const [aResp, gResp] = await Promise.all([
+                    fetch(relUrl('answers.txt')),
+                    fetch(relUrl('guesses.txt'))
+                ]);
+                if (!aResp.ok || !gResp.ok) throw new Error('not found');
+                const [aTxt, gTxt] = await Promise.all([aResp.text(), gResp.text()]);
+                answers = parseWordList(aTxt);
+                guesses = parseWordList(gTxt);
+                onListsLoaded();
+            } catch (e) {
+                loadStatus.textContent = 'Auto-load failed : upload files or paste lists.';
+            }
+        }
+
+        function onListsLoaded() {
+            el('candidateCount').textContent = answers.length;
+            loadStatus.textContent = `Loaded ${answers.length} answers and ${guesses.length} guesses.`;
+            renderCandidatesPreview();
+        }
+
+        function renderCandidatesPreview(list = null) {
+            const box = el('candidatesBox');
+            const arr = list || answers;
+            if (!arr || arr.length === 0) {
+                box.textContent = '—';
+                el('candidateCount').textContent = 0;
+                return;
+            }
+            el('candidateCount').textContent = arr.length;
+            const showAll = el('showAllCandidates').checked;
+            const items = showAll ? arr : arr.slice(0, 80);
+            box.innerHTML = items.map(w => `<span class="chip" style="margin:4px;display:inline-block">${w}</span>`).join('');
+            if (!showAll && arr.length > 80) {
+                box.insertAdjacentHTML('beforeend', `<div class="muted" style="margin-top:8px">Showing 80 of ${arr.length} candidates</div>`);
+            }
+        }
+
+        /* ---------------------- Core solver ---------------------- */
+        function feedback(guess, solution) {
+            guess = guess.toLowerCase();
+            solution = solution.toLowerCase();
+            const res = ['b', 'b', 'b', 'b', 'b'];
+            const solCount = {};
+            for (const ch of solution) solCount[ch] = (solCount[ch] || 0) + 1;
+            // greens
+            for (let i = 0; i < 5; i++) {
+                if (guess[i] === solution[i]) {
+                    res[i] = 'g';
+                    solCount[guess[i]] = (solCount[guess[i]] || 0) - 1;
+                }
+            }
+            // yellows
+            for (let i = 0; i < 5; i++) {
+                if (res[i] === 'b' && (solCount[guess[i]] || 0) > 0) {
+                    res[i] = 'y';
+                    solCount[guess[i]] = solCount[guess[i]] - 1;
+                }
+            }
+            return res.join('');
+        }
+
+        function consistentWithFeedback(word, guess, pattern) {
+            return feedback(guess, word) === pattern;
+        }
+
+        function narrowCandidates(history) {
+            let pool = answers.slice();
+            for (const [guess, pat] of history) {
+                pool = pool.filter(w => consistentWithFeedback(w, guess, pat));
+            }
+            return pool;
+        }
+
+        function expectedBucketSize(guess, pool) {
+            const buckets = new Map();
+            for (const sol of pool) {
+                const pat = feedback(guess, sol);
+                buckets.set(pat, (buckets.get(pat) || 0) + 1);
+            }
+            let sum = 0;
+            for (const v of buckets.values()) sum += v * v;
+            return sum / pool.length;
+        }
+
+        async function rankGuesses(pool, allGuesses, topk = 15, onlyAnswers = false, onProgress = null) {
+            let searchSpace;
+            if (onlyAnswers) {
+                searchSpace = pool.slice();
+            } else {
+                const setPool = new Set(pool);
+                searchSpace = pool.slice();
+                for (const g of allGuesses) if (!setPool.has(g)) searchSpace.push(g);
+            }
+
+            const scored = [];
+            const n = searchSpace.length;
+            for (let i = 0; i < n; i++) {
+                const g = searchSpace[i];
+                if (!/^[a-z]{5}$/.test(g)) continue;
+                const score = expectedBucketSize(g, pool);
+                scored.push({ score, g });
+                if (onProgress && (i % 50 === 0)) onProgress(i, n);
+                if (i % 800 === 0) await new Promise(r => setTimeout(r, 0));
+            }
+            scored.sort((a, b) => a.score - b.score || a.g.localeCompare(b.g));
+            return scored.slice(0, topk);
+        }
+
+        /* ---------------------- UI state ---------------------- */
+        let history = [];
+
+        function renderHistory() {
+            const container = el('historyList');
+            if (history.length === 0) {
+                container.innerHTML = '<div class="muted">No guesses yet</div>';
+                return;
+            }
+            container.innerHTML = '';
+            history.forEach((hp, idx) => {
+                const row = document.createElement('div');
+                row.className = 'hist-row';
+                row.innerHTML = `
+      <div class="chip">${hp.guess}</div>
+      <div class="chip">${hp.pattern}</div>
+      <div style="flex:1" class="muted">pattern for ${hp.guess}</div>
+      <button class="copy-btn" data-idx="${idx}">✂</button>
+      <button class="copy-btn" data-del="${idx}">🗑</button>
+    `;
+                container.appendChild(row);
+            });
+            container.querySelectorAll('[data-idx]').forEach(btn => btn.onclick = e => {
+                const idx = +e.currentTarget.dataset.idx;
+                navigator.clipboard?.writeText(`${history[idx].guess} ${history[idx].pattern}`).then(() => {
+                    e.currentTarget.textContent = '✓';
+                    setTimeout(() => e.currentTarget.textContent = '✂', 700);
+                });
+            });
+            container.querySelectorAll('[data-del]').forEach(btn => btn.onclick = e => {
+                const idx = +e.currentTarget.dataset.del;
+                history.splice(idx, 1);
+                renderHistory();
+            });
+        }
+
+        /* ---------------------- Events ---------------------- */
+
+        el('tryAuto').addEventListener('click', tryAutoLoad);
+
+        el('answersFile').addEventListener('change', async e => {
+            const f = e.target.files[0];
+            if (!f) return;
+            const txt = await f.text();
+            answers = parseWordList(txt);
+            // if guesses empty, default to same list for guesses
+            if (!guesses.length) guesses = answers.slice();
+            onListsLoaded();
+        });
+
+        el('guessesFile').addEventListener('change', async e => {
+            const f = e.target.files[0];
+            if (!f) return;
+            const txt = await f.text();
+            guesses = parseWordList(txt);
+            if (!answers.length) answers = guesses.slice();
+            onListsLoaded();
+        });
+
+
+
+
+        el('addHistory').addEventListener('click', () => {
+            const g = el('guessInput').value.trim().toLowerCase();
+            const p = el('patternInput').value.trim().toLowerCase();
+            if (!/^[a-z]{5}$/.test(g)) { alert('Guess must be 5 letters'); return; }
+            if (!/^[gyb]{5}$/.test(p)) { alert('Pattern must be 5 chars of g/y/b'); return; }
+            history.push({ guess: g, pattern: p });
+            el('guessInput').value = ''; el('patternInput').value = '';
+            renderHistory();
+        });
+
+        el('compute').addEventListener('click', async () => {
+            if (!answers.length) { alert('No answers loaded — upload, paste, or add answers.txt to the repo and click Auto-load.'); return; }
+            const onlyAnswers = el('onlyAnswers').checked;
+            const hist = history.map(h => [h.guess, h.pattern]);
+            let pool = narrowCandidates(hist);
+            renderCandidatesPreview(pool);
+            el('topBox').innerHTML = '<span class="spinner"></span> Computing…';
+            const allGuesses = (guesses.length ? guesses : answers);
+            const scored = await rankGuesses(pool, allGuesses, 40, onlyAnswers, (i, n) => {
+                el('topBox').innerHTML = `<span class="spinner"></span> processing ${i}/${n}`;
+            });
+            const resultsArea = el('resultsArea');
+            if (!scored.length) {
+                resultsArea.innerHTML = '<div class="muted">No suggested guesses (empty search space).</div>';
+                el('topBox').textContent = '—';
+                return;
+            }
+            el('topBox').innerHTML = scored.slice(0, 6).map(s => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
+    <div><span class="result-word">${s.g}</span> <span class="muted">~${s.score.toFixed(2)}</span></div>
+    <div><button class="copy-btn" data-copy="${s.g}">copy</button></div>
+  </div>`).join('');
+            el('topBox').querySelectorAll('[data-copy]').forEach(b => b.onclick = e => { navigator.clipboard?.writeText(e.currentTarget.dataset.copy); e.currentTarget.textContent = '✓'; setTimeout(() => e.currentTarget.textContent = 'copy', 600); });
+
+            resultsArea.innerHTML = `<table>
+    <thead><tr><th>Rank</th><th>Guess</th><th>Expected remaining</th><th>Action</th></tr></thead>
+    <tbody>${scored.map((s, idx) => `<tr><td>${idx + 1}</td><td class="result-word">${s.g}</td><td>${s.score.toFixed(2)}</td><td><button class="copy-btn" data-copy="${s.g}">copy</button></td></tr>`).join('')}</tbody>
+  </table>`;
+            resultsArea.querySelectorAll('[data-copy]').forEach(b => b.onclick = e => { navigator.clipboard?.writeText(e.currentTarget.dataset.copy); e.currentTarget.textContent = '✓'; setTimeout(() => e.currentTarget.textContent = 'copy', 600); });
+        });
+
+        el('reset').addEventListener('click', () => {
+            history = [];
+            renderHistory();
+            el('resultsArea').innerHTML = '';
+            el('topBox').textContent = '—';
+            renderCandidatesPreview(answers);
+        });
+
+        /* Auto-load on page open if files exist */
+        window.addEventListener('load', () => {
+            tryAutoLoad();
+            renderHistory();
+        });
+    </script>
+</body>
+
+</html>
