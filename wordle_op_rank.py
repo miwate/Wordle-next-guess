@@ -61,19 +61,25 @@ def rank_all_guesses(use_multiprocessing=True, out_words_file="ranked_words.txt"
     results.sort(key=lambda x: (-x[0], x[1]))
 
     # Files
-    """
-    with open(out_words_file, "w") as f:
-        for score, word in results:
-            f.write(word + "\n")
-    """
+    best10 = results[:10]
+    worst10 = results[-10:]
 
+    with open("best10_openers.txt", "w") as f:
+        for score, word in best10:
+            f.write(f"{word}\t{score:.3f}\n")
+
+    with open("worst10_openers.txt", "w") as f:
+        for score, word in worst10:
+            f.write(f"{word}\t{score:.3f}\n")
+    """
     with open(out_with_entropy, "w") as f:
         f.write("rank\tword\tentropy\n")
         for rank, (score, word) in enumerate(results, start=1):
             f.write(f"{rank}\t{word}\t{score:.6f}\n")
+    """
 
-    print(f"Done. Wrote {len(results)} words to '{out_words_file}' (one per line).")
-    print(f"Also wrote '{out_with_entropy}' with rank and entropy values.")
+    # print(f"Done. Wrote {len(results)} words to '{out_words_file}' (one per line).")
+    print(f"Also wrote best10 and worst10 openers.")
 
 if __name__ == "__main__":
     rank_all_guesses(use_multiprocessing=True) # or False if no multiproc

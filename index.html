@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Wordle next guess</title>
+    <title>Wordle Next Guess</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         /* ---- Minimal modern reset & layout fixes ---- */
@@ -42,25 +42,17 @@
             min-width: 0;
         }
 
-        /* ---- Theme: cute light pink / purple ---- */
+        /* ---- Theme: cute light pink / purple ---- 
         :root {
             --bg: #fff8fb;
-            /* soft paper */
             --card: #ffffff;
-            /* card bg */
             --muted: #7b6f88;
-            /* muted text (lavender-gray) */
             --accent1: #f472b6;
-            /* warm pink */
             --accent2: #c084fc;
-            /* soft purple */
             --stroke: rgba(30, 16, 38, 0.06);
-            /* light stroke */
             --text: #2b2540;
-            /* primary text (dark purple) */
             --chip: #fff0f7;
-            /* chip bg */
-        }
+        }*/
 
         body {
             background:
@@ -276,8 +268,8 @@
         }
 
         .pill {
-            background: linear-gradient(90deg, rgba(244, 114, 182, 0.14), rgba(192, 132, 252, 0.12));
-            padding: 6px 8px;
+            background: linear-gradient(90deg, rgba(238, 225, 232, 0.14), rgba(134, 134, 134, 0.12));
+            padding: 5px 5px;
             border-radius: 999px;
             font-weight: 600;
             border: 1px solid var(--stroke);
@@ -362,7 +354,7 @@
                 <img src="header.png" alt="Header img" style="height: 130px;">
             </div>
             <div>
-                <h1>Wordle next guess</h1>
+                <h1>Wordle Next Guess</h1>
                 <p class="lead">Upload or auto-load <span class="pill">answers.txt</span> & <span
                         class="pill">guesses.txt</span>. Enter guesses + feedback (g/y/b).</p>
             </div>
@@ -442,6 +434,13 @@
                 </ul>
             </div>
 
+            <div class="card" style="display:flex;flex-direction:column;gap:10px">
+                <div class="muted">Openers with Entropy (higher is better)</div>
+                <div id="openersSection">
+                    <div class="muted">Loading openers…</div>
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -478,6 +477,77 @@
                 onListsLoaded();
             } catch (e) {
                 loadStatus.textContent = 'Auto-load failed : upload files or paste lists.';
+            }
+        }
+
+        async function loadOpeners() {
+            const container = document.getElementById('openersSection');
+            try {
+                const [bestResp, worstResp] = await Promise.all([
+                    fetch(relUrl('best10_openers.txt')),
+                    fetch(relUrl('worst10_openers.txt'))
+                ]);
+
+                if (!bestResp.ok || !worstResp.ok) throw new Error("Files not found");
+
+                const bestTxt = await bestResp.text();
+                const worstTxt = await worstResp.text();
+
+                const parseLines = txt => txt.trim().split(/[\r\n]+/).map(line => {
+                    const [word, entropy] = line.trim().split(/\s+/);
+                    return { word, entropy };
+                });
+
+                const best = parseLines(bestTxt);
+                const worst = parseLines(worstTxt);
+
+                // Compact table style
+                const smallTableStyle = `
+            <style>
+                .openers-table {
+                    width: auto;
+                    font-size: 12px;
+                    border-collapse: collapse;
+                    margin-top: 6px;
+                }
+                .openers-table th,
+                .openers-table td {
+                    padding: 4px 8px;
+                    border-bottom: 1px solid rgba(0,0,0,0.05);
+                    text-align: left;
+                }
+                .openers-table th {
+                    font-weight: 600;
+                    color: var(--muted);
+                }
+            </style>
+        `;
+
+                container.innerHTML = `
+            ${smallTableStyle}
+            <div style="display:flex;gap:16px;flex-wrap:wrap">
+                <div>
+                    <div class="small-right">Best Openers</div>
+                    <table class="openers-table">
+                        <thead><tr><th>Word</th><th>Entropy</th></tr></thead>
+                        <tbody>
+                            ${best.map(b => `<tr><td>${b.word}</td><td>${b.entropy}</td></tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <div>
+                    <div class="small-right">Worst Openers</div>
+                    <table class="openers-table">
+                        <thead><tr><th>Word</th><th>Entropy</th></tr></thead>
+                        <tbody>
+                            ${worst.map(w => `<tr><td>${w.word}</td><td>${w.entropy}</td></tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+            } catch (e) {
+                container.innerHTML = `<div class="bad">Failed to load openers: ${e.message}</div>`;
             }
         }
 
@@ -689,6 +759,72 @@
         window.addEventListener('load', () => {
             tryAutoLoad();
             renderHistory();
+            loadOpeners();
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const themes = [
+                {
+                    bg: "#f6fff8",
+                    card: "#ffffff",
+                    muted: "#5f6f61",
+                    accent1: "#34d399",
+                    accent2: "#10b981",
+                    stroke: "rgba(16,38,30,0.06)",
+                    text: "#1b3324",
+                    chip: "#e6fdf3" // Purple l'original
+                },
+                {
+                    bg: "#fff8fb",
+                    card: "#ffffff",
+                    muted: "#7b6f88",
+                    accent1: "#f472b6",
+                    accent2: "#c084fc",
+                    stroke: "rgba(30,16,38,0.06)",
+                    text: "#2b2540",
+                    chip: "#fff0f7" // Vert clair
+                },
+                {
+                    bg: "#f0f9ff",
+                    card: "#ffffff",
+                    muted: "#64748b",
+                    accent1: "#3b82f6",
+                    accent2: "#60a5fa",
+                    stroke: "rgba(10,30,50,0.06)",
+                    text: "#1e293b",
+                    chip: "#e0f2fe" // Bleu
+                },
+                {
+                    bg: "#fffdf5",
+                    card: "#ffffff",
+                    muted: "#7c6f57",
+                    accent1: "#facc15",
+                    accent2: "#f97316",
+                    stroke: "rgba(50,40,20,0.06)",
+                    text: "#2d1f10",
+                    chip: "#fff7d6" // Warm & sunny
+                },
+                {
+                    bg: "#fef6f6",
+                    card: "#ffffff",
+                    muted: "#6b4c4c",
+                    accent1: "#f87171",
+                    accent2: "#ef4444",
+                    stroke: "rgba(100,30,30,0.06)",
+                    text: "#2c1818",
+                    chip: "#fde2e2" // red theme
+                }
+
+            ];
+
+            // Random
+            const theme = themes[Math.floor(Math.random() * themes.length)];
+
+            // Apply to root
+            const root = document.documentElement;
+            Object.entries(theme).forEach(([key, value]) => {
+                root.style.setProperty(`--${key}`, value);
+            });
         });
     </script>
 </body>
