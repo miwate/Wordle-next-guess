@@ -42,6 +42,22 @@
             min-width: 0;
         }
 
+        .theme-toggle {
+            border: none;
+            background: var(--card);
+            color: var(--text);
+            padding: 6px 10px;
+            font-size: 16px;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px var(--stroke);
+            cursor: pointer;
+            transition: transform .12s ease, opacity .12s ease;
+        }
+
+        .theme-toggle:active {
+            transform: scale(.98);
+        }
+
         /* ---- Theme: cute light pink / purple ---- 
         :root {
             --bg: #fff8fb;
@@ -56,9 +72,7 @@
 
         body {
             background:
-                radial-gradient(600px 400px at 10% 12%, rgba(196, 132, 252, 0.10), transparent 10%),
-                radial-gradient(600px 350px at 85% 80%, rgba(244, 114, 182, 0.06), transparent 8%),
-                linear-gradient(180deg, var(--bg) 0%, #fff 70%);
+                linear-gradient(180deg, var(--bg) 100%);
             color: var(--text);
             padding: 28px;
             box-sizing: border-box;
@@ -238,7 +252,6 @@
             max-height: 180px;
             overflow: auto;
             padding: 12px;
-            background: linear-gradient(180deg, rgba(240, 243, 250, 0.6), rgba(255, 250, 253, 0.6));
             border-radius: 10px;
             border: 1px dashed var(--stroke)
         }
@@ -290,15 +303,18 @@
         }
 
         .pattern-input {
-            width: 132px
+            width: 132px;
+            background-color: var(--card);
+            color: var(--text);
+            padding: 6px 10px;
+            border-radius: 10px;
         }
 
         input[type=text],
         textarea {
             padding: 10px;
             border-radius: 10px;
-            border: 1px solid rgba(43, 37, 64, 0.06);
-            background: linear-gradient(180deg, #fff, #fff);
+            border: 1px solid var(--chip);
             color: var(--text);
             width: 100%;
             box-shadow: inset 0 1px 0 rgba(16, 12, 24, 0.02)
@@ -358,6 +374,9 @@
                 <p class="lead">Upload or auto-load <span class="pill">answers.txt</span> & <span
                         class="pill">guesses.txt</span>. Enter guesses + feedback (g/y/b).</p>
             </div>
+
+            <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode" aria-pressed="false">🌙</button>
+
         </header>
 
         <!-- Left column: controls -->
@@ -376,7 +395,7 @@
 
             <label>Enter guess + feedback</label>
             <div class="flex">
-                <input id="guessInput" type="text" maxlength="5" placeholder="guess (ex : ratel)"
+                <input id="guessInput" class="pattern-input" type="text" maxlength="5" placeholder="guess (ex : ratel)"
                     style="text-transform:lowercase">
                 <input id="patternInput" class="pattern-input" type="text" maxlength="5" placeholder="pattern (g/y/b)">
                 <button id="addHistory" class="primary">Add</button>
@@ -418,18 +437,11 @@
                     </div>
                 </div>
 
-                <div style="margin-top:14px">
-                    <div class="small-right">Ranked guesses (expected remaining size)</div>
-                    <div id="resultsArea"></div>
-                </div>
             </div>
 
             <div class="card" style="display:flex;flex-direction:column;gap:10px">
                 <div class="muted">Notes</div>
                 <ul class="muted" style="padding-left:18px">
-                    <li>Algorithm: for each possible guess it simulates feedbacks vs candidate solutions, groups by
-                        pattern, and computes <code>sum(|bucket|^2)/N</code>, the expected remaining candidate set size.
-                        Lower is better.</li>
                     <li>Prefer "Use only answers" if the browser is slow. Full guess list is stronger but heavier.</li>
                 </ul>
             </div>
@@ -522,7 +534,7 @@
                 const smallTableStyle = `
 <style>
 .openers-grid { border-collapse: collapse; margin-top:6px; font-size:12px; width:100%; }
-.openers-grid td { padding:6px 8px; border:1px solid rgba(0,0,0,0.06); vertical-align:top; min-width:90px; }
+.openers-grid td { padding:6px 8px; border:1px solid var(--chip); vertical-align:top; min-width:90px; }
 .openers-cell-word { font-weight:600; display:block; }
 .openers-cell-entropy { font-size:11px; color:var(--muted); display:block; margin-top:3px; }
 .grid-wrap { display:block; overflow:auto; padding-top:6px;}
@@ -785,66 +797,62 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             const themes = [
-                {
-                    bg: "#f6fff8",
-                    card: "#ffffff",
-                    muted: "#5f6f61",
-                    accent1: "#34d399",
-                    accent2: "#10b981",
-                    stroke: "rgba(16,38,30,0.06)",
-                    text: "#1b3324",
-                    chip: "#e6fdf3" // Purple l'original
-                },
-                {
-                    bg: "#fff8fb",
-                    card: "#ffffff",
-                    muted: "#7b6f88",
-                    accent1: "#f472b6",
-                    accent2: "#c084fc",
-                    stroke: "rgba(30,16,38,0.06)",
-                    text: "#2b2540",
-                    chip: "#fff0f7" // Vert clair
-                },
-                {
-                    bg: "#f0f9ff",
-                    card: "#ffffff",
-                    muted: "#64748b",
-                    accent1: "#3b82f6",
-                    accent2: "#60a5fa",
-                    stroke: "rgba(10,30,50,0.06)",
-                    text: "#1e293b",
-                    chip: "#e0f2fe" // Bleu
-                },
-                {
-                    bg: "#fffdf5",
-                    card: "#ffffff",
-                    muted: "#7c6f57",
-                    accent1: "#facc15",
-                    accent2: "#f97316",
-                    stroke: "rgba(50,40,20,0.06)",
-                    text: "#2d1f10",
-                    chip: "#fff7d6" // Warm & sunny
-                },
-                {
-                    bg: "#fef6f6",
-                    card: "#ffffff",
-                    muted: "#6b4c4c",
-                    accent1: "#f87171",
-                    accent2: "#ef4444",
-                    stroke: "rgba(100,30,30,0.06)",
-                    text: "#2c1818",
-                    chip: "#fde2e2" // red theme
-                }
-
+                { bg: "#f6fff8", card: "#ffffff", muted: "#5f6f61", accent1: "#34d399", accent2: "#10b981", stroke: "rgba(16,38,30,0.06)", text: "#1b3324", chip: "#e6fdf3" },
+                { bg: "#fff8fb", card: "#ffffff", muted: "#7b6f88", accent1: "#f472b6", accent2: "#c084fc", stroke: "rgba(30,16,38,0.06)", text: "#2b2540", chip: "#fff0f7" }
             ];
 
-            // Random
-            const theme = themes[Math.floor(Math.random() * themes.length)];
+            const lightTheme = themes[1]; // Purple
 
-            // Apply to root
+            // Dark theme
+            const darkTheme = {
+                bg: "#1e1e1e",
+                card: "#252526",
+                muted: "#858585",
+                accent1: "#c586c0",
+                accent2: "#569cd6",
+                stroke: "#3c3c3c",
+                text: "#d4d4d4",
+                chip: "#2d2d2d"
+            };
+
             const root = document.documentElement;
-            Object.entries(theme).forEach(([key, value]) => {
-                root.style.setProperty(`--${key}`, value);
+            const btn = document.getElementById('themeToggle');
+
+            function applyTheme(themeObj) {
+                Object.entries(themeObj).forEach(([key, value]) => {
+                    root.style.setProperty(`--${key}`, value);
+                });
+            }
+
+            function updateButton(mode) {
+                if (mode === 'dark') {
+                    btn.textContent = '☀️'; // clicking will go to light
+                    btn.setAttribute('aria-pressed', 'true');
+                    btn.setAttribute('aria-label', 'Switch to light mode');
+                } else {
+                    btn.textContent = '🌙'; // clicking will go to dark
+                    btn.setAttribute('aria-pressed', 'false');
+                    btn.setAttribute('aria-label', 'Switch to dark mode');
+                }
+            }
+
+            // Determine initial mode: localStorage -> prefers-color-scheme -> default 'light'
+            let saved = localStorage.getItem('color-mode');
+            let initialMode;
+            if (saved === 'dark' || saved === 'light') initialMode = saved;
+            else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) initialMode = 'dark';
+            else initialMode = 'light';
+
+            // Apply initial theme
+            applyTheme(initialMode === 'dark' ? darkTheme : lightTheme);
+            updateButton(initialMode);
+
+            // Toggle handler
+            btn.addEventListener('click', () => {
+                const next = btn.getAttribute('aria-pressed') === 'true' ? 'light' : 'dark';
+                applyTheme(next === 'dark' ? darkTheme : lightTheme);
+                updateButton(next);
+                localStorage.setItem('color-mode', next);
             });
         });
     </script>
