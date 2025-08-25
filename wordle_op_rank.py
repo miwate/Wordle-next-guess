@@ -61,17 +61,19 @@ def rank_all_guesses(use_multiprocessing=True, out_words_file="ranked_words.txt"
     results.sort(key=lambda x: (-x[0], x[1]))
 
     # Files
-    best10 = results[:10]
+    best_openers = results[:100]
     worst10 = results[-10:]
 
-    with open("best10_openers.txt", "w") as f:
-        for score, word in best10:
+    with open("best_openers.txt", "w") as f:
+        for score, word in best_openers:
             f.write(f"{word}\t{score:.3f}\n")
 
+    """
     with open("worst10_openers.txt", "w") as f:
         for score, word in worst10:
             f.write(f"{word}\t{score:.3f}\n")
-    """
+    
+    
     with open(out_with_entropy, "w") as f:
         f.write("rank\tword\tentropy\n")
         for rank, (score, word) in enumerate(results, start=1):

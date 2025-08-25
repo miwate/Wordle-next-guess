@@ -435,7 +435,6 @@
             </div>
 
             <div class="card" style="display:flex;flex-direction:column;gap:10px">
-                <div class="muted">Openers with Entropy (higher is better)</div>
                 <div id="openersSection">
                     <div class="muted">Loading openers…</div>
                 </div>
@@ -482,74 +481,96 @@
 
         async function loadOpeners() {
             const container = document.getElementById('openersSection');
-            try {
-                const [bestResp, worstResp] = await Promise.all([
-                    fetch(relUrl('best10_openers.txt')),
-                    fetch(relUrl('worst10_openers.txt'))
-                ]);
 
-                if (!bestResp.ok || !worstResp.ok) throw new Error("Files not found");
+            // config: grid size (10x10)
+            const ROWS = 10;
+            const COLS = 5;
+            const TOTAL = ROWS * COLS;
+
+            // try two possible filenames for robustness
+            const candidateFiles = [
+                relUrl('best_openers.txt')
+            ];
+
+            try {
+                // fetch the first file that exists
+                let bestResp = null;
+                for (const url of candidateFiles) {
+                    const r = await fetch(url);
+                    if (r.ok) { bestResp = r; break; }
+                }
+                if (!bestResp) throw new Error("No best_openers file found");
 
                 const bestTxt = await bestResp.text();
-                const worstTxt = await worstResp.text();
 
-                const parseLines = txt => txt.trim().split(/[\r\n]+/).map(line => {
-                    const [word, entropy] = line.trim().split(/\s+/);
-                    return { word, entropy };
-                });
+                const parseLines = txt => {
+                    return txt.trim()
+                        .split(/[\r\n]+/)
+                        .map(line => {
+                            const parts = line.trim().split(/\s+/);
+                            // tolerate lines with only word or "word entropy"
+                            const word = parts[0] ?? '';
+                            const entropy = parts[1] ?? '';
+                            return { word, entropy };
+                        })
+                        .filter(x => x.word); // drop empty lines
+                };
 
-                const best = parseLines(bestTxt);
-                const worst = parseLines(worstTxt);
+                const entries = parseLines(bestTxt);
 
-                // Compact table style
+                // CSS (kept compact and similar to your previous style)
                 const smallTableStyle = `
-            <style>
-                .openers-table {
-                    width: auto;
-                    font-size: 12px;
-                    border-collapse: collapse;
-                    margin-top: 6px;
-                }
-                .openers-table th,
-                .openers-table td {
-                    padding: 4px 8px;
-                    border-bottom: 1px solid rgba(0,0,0,0.05);
-                    text-align: left;
-                }
-                .openers-table th {
-                    font-weight: 600;
-                    color: var(--muted);
-                }
-            </style>
-        `;
+<style>
+.openers-grid { border-collapse: collapse; margin-top:6px; font-size:12px; width:100%; }
+.openers-grid td { padding:6px 8px; border:1px solid rgba(0,0,0,0.06); vertical-align:top; min-width:90px; }
+.openers-cell-word { font-weight:600; display:block; }
+.openers-cell-entropy { font-size:11px; color:var(--muted); display:block; margin-top:3px; }
+.grid-wrap { display:block; overflow:auto; padding-top:6px;}
+.header-row { font-weight:600; color:var(--muted); margin-bottom:6px; }
+</style>`;
 
-                container.innerHTML = `
-            ${smallTableStyle}
-            <div style="display:flex;gap:16px;flex-wrap:wrap">
-                <div>
-                    <div class="small-right">Best Openers</div>
-                    <table class="openers-table">
-                        <thead><tr><th>Word</th><th>Entropy</th></tr></thead>
-                        <tbody>
-                            ${best.map(b => `<tr><td>${b.word}</td><td>${b.entropy}</td></tr>`).join('')}
-                        </tbody>
-                    </table>
-                </div>
-                <div>
-                    <div class="small-right">Worst Openers</div>
-                    <table class="openers-table">
-                        <thead><tr><th>Word</th><th>Entropy</th></tr></thead>
-                        <tbody>
-                            ${worst.map(w => `<tr><td>${w.word}</td><td>${w.entropy}</td></tr>`).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
+                // Build table row-major
+                let tableHtml = `${smallTableStyle}
+<div class="grid-wrap">
+  <div class="muted">Best openers with entropy score (higher is better) - ${Math.min(entries.length, TOTAL)} shown</div>
+  <table class="openers-grid" role="table" aria-label="Best openers">
+    <tbody>`;
+
+                for (let r = 0; r < ROWS; r++) {
+                    tableHtml += '<tr>';
+                    for (let c = 0; c < COLS; c++) {
+                        const idx = r * COLS + c;
+                        if (idx < entries.length) {
+                            const e = entries[idx];
+                            tableHtml += `<td>
+                      <span class="openers-cell-word">${escapeHtml(e.word)}</span>
+                      ${e.entropy ? `<span class="openers-cell-entropy">${escapeHtml(e.entropy)}</span>` : ''}
+                    </td>`;
+                        } else {
+                            tableHtml += `<td></td>`;
+                        }
+                    }
+                    tableHtml += '</tr>';
+                }
+
+                tableHtml += '</tbody></table></div>';
+
+                container.innerHTML = tableHtml;
             } catch (e) {
-                container.innerHTML = `<div class="bad">Failed to load openers: ${e.message}</div>`;
+                container.innerHTML = `<div class="bad">Failed to load openers: ${escapeHtml(e.message)}</div>`;
+            }
+
+            // small helper to escape user/file content for insertion into HTML
+            function escapeHtml(s = '') {
+                return String(s)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
             }
         }
+
 
         function onListsLoaded() {
             el('candidateCount').textContent = answers.length;
