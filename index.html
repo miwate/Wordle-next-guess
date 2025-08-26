@@ -417,11 +417,11 @@
                 <div class="top-row">
                     <div style="flex:1; min-width:0">
                         <div class="small-right">Candidates (<span id="candidateCount">0</span>)</div>
-                        <div class="candidate-list" id="candidatesBox">—</div>
+                        <div class="candidate-list" id="candidatesBox">---</div>
                     </div>
                     <div style="width:320px; min-width:260px">
                         <div class="small-right">Top suggestions</div>
-                        <div style="margin-top:8px" id="topBox">—</div>
+                        <div style="margin-top:8px" id="topBox">---</div>
                     </div>
                 </div>
 
@@ -582,7 +582,7 @@
             const box = el('candidatesBox');
             const arr = list || answers;
             if (!arr || arr.length === 0) {
-                box.textContent = '—';
+                box.textContent = '---';
                 el('candidateCount').textContent = 0;
                 return;
             }
@@ -739,7 +739,7 @@
         });
 
         el('compute').addEventListener('click', async () => {
-            if (!answers.length) { alert('No answers loaded — upload, paste, or add answers.txt to the repo and click Auto-load.'); return; }
+            if (!answers.length) { alert('No answers loaded --- upload, paste, or add answers.txt to the repo and click Auto-load.'); return; }
             const onlyAnswers = el('onlyAnswers').checked;
             const hist = history.map(h => [h.guess, h.pattern]);
             let pool = narrowCandidates(hist);
@@ -752,7 +752,7 @@
             const resultsArea = el('resultsArea');
             if (!scored.length) {
                 resultsArea.innerHTML = '<div class="muted">No suggested guesses (empty search space).</div>';
-                el('topBox').textContent = '—';
+                el('topBox').textContent = '---';
                 return;
             }
             el('topBox').innerHTML = scored.slice(0, 6).map(s => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
@@ -772,7 +772,7 @@
             history = [];
             renderHistory();
             el('resultsArea').innerHTML = '';
-            el('topBox').textContent = '—';
+            el('topBox').textContent = '---';
             renderCandidatesPreview(answers);
         });
 
