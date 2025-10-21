@@ -30,7 +30,7 @@ function relUrl(file) {
 
 async function tryAutoLoad() {
     const loadStatus = el('loadStatus');
-    loadStatus.textContent = 'Trying to fetch answers.txt & guesses.txt (relative to this page)…';
+    loadStatus.textContent = 'Trying to fetch answers.txt & guesses.txt (relative to this page)';
     try {
         const [aResp, gResp] = await Promise.all([
             fetch(relUrl('answers.txt')),
@@ -156,15 +156,19 @@ function narrowCandidates(history) {
     return pool;
 }
 
-function expectedBucketSize(guess, pool) {
+function entropy(guess, pool) {
     const buckets = new Map();
     for (const sol of pool) {
         const pat = feedback(guess, sol);
         buckets.set(pat, (buckets.get(pat) || 0) + 1);
     }
-    let sum = 0;
-    for (const v of buckets.values()) sum += v * v;
-    return sum / pool.length;
+    const total = pool.length;
+    let ent = 0;
+    for (const count of buckets.values()) {
+        const p = count / total;
+        ent -= p * Math.log2(p);
+    }
+    return ent;
 }
 
 async function rankGuesses(pool, allGuesses, topk = 15, onlyAnswers = false, onProgress = null) {
@@ -182,12 +186,12 @@ async function rankGuesses(pool, allGuesses, topk = 15, onlyAnswers = false, onP
     for (let i = 0; i < n; i++) {
         const g = searchSpace[i];
         if (!/^[a-z]{5}$/.test(g)) continue;
-        const score = expectedBucketSize(g, pool);
+        const score = entropy(g, pool);
         scored.push({ score, g });
         if (onProgress && (i % 50 === 0)) onProgress(i, n);
         if (i % 800 === 0) await new Promise(r => setTimeout(r, 0));
     }
-    scored.sort((a, b) => a.score - b.score || a.g.localeCompare(b.g));
+    scored.sort((a, b) => b.score - a.score || a.g.localeCompare(b.g));
     return scored.slice(0, topk);
 }
 
@@ -292,13 +296,24 @@ function setupEventListeners() {
         const hist = history.map(h => [h.guess, h.pattern]);
         let pool = narrowCandidates(hist);
         renderCandidatesPreview(pool);
-        el('topBox').innerHTML = '<span class="spinner"></span> Computing…';
+        
+        const resultsArea = el('resultsArea');
+        
+        // Don't compute suggestions if only 2 or fewer candidates remain
+        if (pool.length <= 2) {
+            el('topBox').textContent = pool.length === 0 ? 'No candidates remain' : 
+                pool.length === 1 ? `Only 1 candidate: ${pool[0]}` : 
+                `Only 2 candidates: ${pool[0]}, ${pool[1]}`;
+            resultsArea.innerHTML = '<div class="muted">Too few candidates to suggest guesses. Just pick one!</div>';
+            return;
+        }
+        
+        el('topBox').innerHTML = '<span class="spinner"></span> Computing';
         const allGuesses = (guesses.length ? guesses : answers);
         const scored = await rankGuesses(pool, allGuesses, 40, onlyAnswers, (i, n) => {
             el('topBox').innerHTML = `<span class="spinner"></span> processing ${i}/${n}`;
         });
         
-        const resultsArea = el('resultsArea');
         if (!scored.length) {
             resultsArea.innerHTML = '<div class="muted">No suggested guesses (empty search space).</div>';
             el('topBox').textContent = '---';
@@ -306,7 +321,7 @@ function setupEventListeners() {
         }
         
         el('topBox').innerHTML = scored.slice(0, 6).map(s => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
-    <div><span class="result-word">${s.g}</span> <span class="muted">~${s.score.toFixed(2)}</span></div>
+    <div><span class="result-word">${s.g}</span> <span class="muted">entropy: ${s.score.toFixed(2)}</span></div>
     <div><button class="copy-btn" data-copy="${s.g}">copy</button></div>
   </div>`).join('');
         
@@ -317,7 +332,7 @@ function setupEventListeners() {
         });
 
         resultsArea.innerHTML = `<table>
-    <thead><tr><th>Rank</th><th>Guess</th><th>Expected remaining</th><th>Action</th></tr></thead>
+    <thead><tr><th>Rank</th><th>Guess</th><th>Entropy</th><th>Action</th></tr></thead>
     <tbody>${scored.map((s, idx) => `<tr><td>${idx + 1}</td><td class="result-word">${s.g}</td><td>${s.score.toFixed(2)}</td><td><button class="copy-btn" data-copy="${s.g}">copy</button></td></tr>`).join('')}</tbody>
   </table>`;
         
