@@ -1,4 +1,5 @@
 # Wordle Next Guess by miwate
+![NextGuess](header.png)
 A lightweight, browser-only Wordle suggestion tool that ranks candidate guesses by expected remaining candidate set size.
 *Also includes a table of optimal openers.*
 
