@@ -5,37 +5,18 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Wordle Next Guess</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
     <div class="wrap">
         <header>
-            <div class="logo-container">
-                <div class="logo">W</div>
-                <img src="header.png" alt="Header img">
-            </div>
-            <div>
-                <h1>Wordle Next Guess</h1>
-                <p class="lead">Upload or auto-load <span class="pill">answers.txt</span> & <span
-                        class="pill">guesses.txt</span>. Enter guesses + feedback (g/y/b).</p>
-            </div>
+            <img src="header.png" alt="Wordle Next Guess" class="logo-img">
             <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode" aria-pressed="false">🌙</button>
         </header>
 
-        <!-- Left column: controls -->
         <aside class="card">
-            <label>Load word lists (optional)
-                <div class="files">
-                    <input id="answersFile" type="file" accept=".txt">
-                    <input id="guessesFile" type="file" accept=".txt">
-                    <button id="tryAuto">Auto-load from repo</button>
-                </div>
-            </label>
-
-            <hr>
-
             <label>Enter guess + feedback</label>
             <div class="flex">
                 <input id="guessInput" class="pattern-input" type="text" maxlength="5" placeholder="guess (ex : ratel)">
@@ -43,26 +24,20 @@
                 <button id="addHistory" class="primary">Add</button>
             </div>
             <div class="hint">
-                <li>Pattern: <b>g</b>=green, <b>y</b>=yellow, <b>b</b>=black.</li>
-                <li>Example: <code>ratel → bbbyb</code></li>
+                <div>Pattern: <b>g</b>=green, <b>y</b>=yellow, <b>b</b>=black.</div>
+                <div>Example: <code>ratel → bbbyb</code></div>
             </div>
 
             <div class="history" id="historyList"></div>
-
-            <div class="controls">
-                <label><input id="onlyAnswers" type="checkbox"> Use only answers as guess candidates (faster)</label>
-                <label><input id="showAllCandidates" type="checkbox"> Show all candidate words</label>
-            </div>
 
             <div class="button-group">
                 <button id="compute" class="primary">Compute suggestions</button>
                 <button id="reset" title="Clear history">Reset</button>
             </div>
 
-            <div id="loadStatus" class="muted">No word lists loaded yet.</div>
+            <div id="loadStatus" class="muted"></div>
         </aside>
 
-        <!-- Right column: results -->
         <main class="main-col">
             <div class="card">
                 <div class="top-row">
@@ -75,14 +50,7 @@
                         <div id="topBox">---</div>
                     </div>
                 </div>
-            </div>
-
-            <div class="card">
-                <div class="muted">Notes</div>
-                <ul class="muted notes-list">
-                    <li>Prefer "Use only answers" if the browser is slow. Full guess list is stronger but heavier.</li>
-                    <li>Entropy score for openers (see table below) can be interpreted as luck.</li>
-                </ul>
+                <div id="resultsArea"></div>
             </div>
 
             <div class="card">
@@ -90,8 +58,6 @@
                     <div class="muted">Loading openers...</div>
                 </div>
             </div>
-
-
         </main>
     </div>
 

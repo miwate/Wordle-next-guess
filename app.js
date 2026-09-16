@@ -1,11 +1,7 @@
-// Main Application
-
-// ==================== DATA & STATE ====================
 let answers = [];
 let guesses = [];
 let history = [];
 
-// ==================== DOM HELPERS ====================
 const el = id => document.getElementById(id);
 
 function escapeHtml(s = '') {
@@ -17,7 +13,6 @@ function escapeHtml(s = '') {
         .replace(/'/g, '&#39;');
 }
 
-// ==================== WORD LIST MANAGEMENT ====================
 function parseWordList(text) {
     return text.split(/[\r\n]+/)
         .map(s => s.trim().toLowerCase())
@@ -29,8 +24,6 @@ function relUrl(file) {
 }
 
 async function tryAutoLoad() {
-    const loadStatus = el('loadStatus');
-    loadStatus.textContent = 'Trying to fetch answers.txt & guesses.txt (relative to this page)';
     try {
         const [aResp, gResp] = await Promise.all([
             fetch(relUrl('answers.txt')),
@@ -40,19 +33,12 @@ async function tryAutoLoad() {
         const [aTxt, gTxt] = await Promise.all([aResp.text(), gResp.text()]);
         answers = parseWordList(aTxt);
         guesses = parseWordList(gTxt);
-        onListsLoaded();
+        renderCandidatesPreview();
     } catch (e) {
-        loadStatus.textContent = 'Auto-load failed : upload files or paste lists.';
+        el('loadStatus').textContent = 'Failed to load word lists.';
     }
 }
 
-function onListsLoaded() {
-    el('candidateCount').textContent = answers.length;
-    el('loadStatus').textContent = `Loaded ${answers.length} answers and ${guesses.length} guesses.`;
-    renderCandidatesPreview();
-}
-
-// ==================== OPENERS LOADING ====================
 async function loadOpeners() {
     const container = el('openersSection');
     const ROWS = 3;
@@ -118,7 +104,6 @@ async function loadOpeners() {
     }
 }
 
-// ==================== WORDLE SOLVER CORE ====================
 function feedback(guess, solution) {
     guess = guess.toLowerCase();
     solution = solution.toLowerCase();
@@ -171,15 +156,10 @@ function entropy(guess, pool) {
     return ent;
 }
 
-async function rankGuesses(pool, allGuesses, topk = 15, onlyAnswers = false, onProgress = null) {
-    let searchSpace;
-    if (onlyAnswers) {
-        searchSpace = pool.slice();
-    } else {
-        const setPool = new Set(pool);
-        searchSpace = pool.slice();
-        for (const g of allGuesses) if (!setPool.has(g)) searchSpace.push(g);
-    }
+async function rankGuesses(pool, allGuesses, topk = 15, onProgress = null) {
+    const setPool = new Set(pool);
+    const searchSpace = pool.slice();
+    for (const g of allGuesses) if (!setPool.has(g)) searchSpace.push(g);
 
     const scored = [];
     const n = searchSpace.length;
@@ -195,7 +175,6 @@ async function rankGuesses(pool, allGuesses, topk = 15, onlyAnswers = false, onP
     return scored.slice(0, topk);
 }
 
-// ==================== UI RENDERING ====================
 function renderCandidatesPreview(list = null) {
     const box = el('candidatesBox');
     const arr = list || answers;
@@ -205,20 +184,11 @@ function renderCandidatesPreview(list = null) {
         return;
     }
     el('candidateCount').textContent = arr.length;
-    const showAll = el('showAllCandidates').checked;
-    const items = showAll ? arr : arr.slice(0, 80);
-    box.innerHTML = items.map(w => `<span class="chip" style="margin:4px;display:inline-block">${w}</span>`).join('');
-    if (!showAll && arr.length > 80) {
-        box.insertAdjacentHTML('beforeend', `<div class="muted" style="margin-top:8px">Showing 80 of ${arr.length} candidates</div>`);
-    }
+    box.innerHTML = arr.map(w => `<span class="chip" style="margin:4px;display:inline-block">${w}</span>`).join('');
 }
 
 function renderHistory() {
     const container = el('historyList');
-    if (history.length === 0) {
-        container.innerHTML = '<div class="muted">No guesses yet</div>';
-        return;
-    }
     container.innerHTML = '';
     history.forEach((hp, idx) => {
         const row = document.createElement('div');
@@ -248,28 +218,7 @@ function renderHistory() {
     });
 }
 
-// ==================== EVENT HANDLERS ====================
 function setupEventListeners() {
-    el('tryAuto').addEventListener('click', tryAutoLoad);
-
-    el('answersFile').addEventListener('change', async e => {
-        const f = e.target.files[0];
-        if (!f) return;
-        const txt = await f.text();
-        answers = parseWordList(txt);
-        if (!guesses.length) guesses = answers.slice();
-        onListsLoaded();
-    });
-
-    el('guessesFile').addEventListener('change', async e => {
-        const f = e.target.files[0];
-        if (!f) return;
-        const txt = await f.text();
-        guesses = parseWordList(txt);
-        if (!answers.length) answers = guesses.slice();
-        onListsLoaded();
-    });
-
     el('addHistory').addEventListener('click', () => {
         const g = el('guessInput').value.trim().toLowerCase();
         const p = el('patternInput').value.trim().toLowerCase();
@@ -289,17 +238,15 @@ function setupEventListeners() {
 
     el('compute').addEventListener('click', async () => {
         if (!answers.length) {
-            alert('No answers loaded --- upload, paste, or add answers.txt to the repo and click Auto-load.');
+            alert('Word lists failed to load.');
             return;
         }
-        const onlyAnswers = el('onlyAnswers').checked;
         const hist = history.map(h => [h.guess, h.pattern]);
         let pool = narrowCandidates(hist);
         renderCandidatesPreview(pool);
-        
+
         const resultsArea = el('resultsArea');
-        
-        // Don't compute suggestions if only 2 or fewer candidates remain
+
         if (pool.length <= 2) {
             el('topBox').textContent = pool.length === 0 ? 'No candidates remain' : 
                 pool.length === 1 ? `Only 1 candidate: ${pool[0]}` : 
@@ -310,7 +257,7 @@ function setupEventListeners() {
         
         el('topBox').innerHTML = '<span class="spinner"></span> Computing';
         const allGuesses = (guesses.length ? guesses : answers);
-        const scored = await rankGuesses(pool, allGuesses, 40, onlyAnswers, (i, n) => {
+        const scored = await rankGuesses(pool, allGuesses, 40, (i, n) => {
             el('topBox').innerHTML = `<span class="spinner"></span> processing ${i}/${n}`;
         });
         
@@ -352,24 +299,9 @@ function setupEventListeners() {
     });
 }
 
-// ==================== THEME MANAGEMENT ====================
 function setupTheme() {
-    const themes = [
-        { bg: "#f6fff8", card: "#ffffff", muted: "#5f6f61", accent1: "#34d399", accent2: "#10b981", stroke: "rgba(16,38,30,0.06)", text: "#1b3324", chip: "#e6fdf3" },
-        { bg: "#fff8fb", card: "#ffffff", muted: "#7b6f88", accent1: "#f472b6", accent2: "#c084fc", stroke: "rgba(30,16,38,0.06)", text: "#2b2540", chip: "#fff0f7" }
-    ];
-
-    const lightTheme = themes[1]; // Purple
-    const darkTheme = {
-        bg: "#1e1e1e",
-        card: "#252526",
-        muted: "#858585",
-        accent1: "#c586c0",
-        accent2: "#569cd6",
-        stroke: "#3c3c3c",
-        text: "#d4d4d4",
-        chip: "#2d2d2d"
-    };
+    const lightTheme = { bg: "#fff8fb", card: "#ffffff", muted: "#7b6f88", stroke: "rgba(30,16,38,0.06)", text: "#2b2540", chip: "#fff0f7" };
+    const darkTheme = { bg: "#1e1e1e", card: "#252526", muted: "#858585", stroke: "#3c3c3c", text: "#d4d4d4", chip: "#2d2d2d" };
 
     const root = document.documentElement;
     const btn = el('themeToggle');
@@ -412,7 +344,6 @@ function setupTheme() {
     });
 }
 
-// ==================== INITIALIZATION ====================
 window.addEventListener('load', () => {
     tryAutoLoad();
     renderHistory();
